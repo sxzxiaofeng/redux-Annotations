@@ -19,4 +19,12 @@ export default function compose(...funcs) {
   }
 
   return funcs.reduce((a, b) => (...args) => a(b(...args)))
+  /**
+   *  每次循环返回一个函数 (...args) => a(b(...args))，所以每当一次循环结束之后a=(...args) => a(b(...args))
+   *  例如[f,g,h].reduce((total,item)=>(...args) => total(item(...args)))
+   *  如果没有初始值，则取数组中的第一项
+   * 
+   *  total=(...args) =>f(g(...args))
+   *  total=(...args) =>f(g(h(...args)))
+   * */
 }

@@ -18,11 +18,18 @@ import compose from './compose'
  */
 export default function applyMiddleware(...middlewares) {
   return createStore => (...args) => {
-    const store = createStore(...args)
-    let dispatch = () => {
+    // 此时...arg=(reducer, preloadedState)
+    const store = createStore(...args) 
+    // 此时 store={dispatch,subscribe,getState,replaceReducer,[$$observable]: observable}
+
+    let dispatch = () => { //防止在构建期间dispatch
       throw new Error(
         'Dispatching while constructing your middleware is not allowed. ' +
           'Other middleware would not be applied to this dispatch.'
+          /**
+           * 构建您的中间件时不允许Dispatching
+           * 其他中间件将不会应用于此dispatch
+           */
       )
     }
 
@@ -30,12 +37,26 @@ export default function applyMiddleware(...middlewares) {
       getState: store.getState,
       dispatch: (...args) => dispatch(...args)
     }
-    const chain = middlewares.map(middleware => middleware(middlewareAPI))
+    /**
+     * export function middleware({ dispatch, getState }) {
+        return next => action =>
+          typeof action === 'function' ? action(dispatch, getState) : next(action)
+      }
+     */
+    const chain = middlewares.map(middleware => middleware(middlewareAPI)) 
+    /**
+     * 给每个中间件加入middlewareAPI
+     * 如 chian = [middleware1, middleware2, middleware3]
+     */
     dispatch = compose(...chain)(store.dispatch)
+    /**
+     * 通过compose函数传入chain一层层增强dispatch
+     * dispatch = compose(...chain)(store.dispatch)，即执行 middleware1(middleware2(middleware3(store.dispatch)))
+     */
 
     return {
       ...store,
-      dispatch
+      dispatch //通过中间件增强之后的dipatch
     }
   }
 }
