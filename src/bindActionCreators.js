@@ -27,7 +27,14 @@ function bindActionCreator(actionCreator, dispatch) {
  */
 export default function bindActionCreators(actionCreators, dispatch) {
   if (typeof actionCreators === 'function') {
-    return bindActionCreator(actionCreators, dispatch)
+    /**
+     * 如果是function则返回一个
+     * function() { 
+          return dispatch(actionCreator.apply(this, arguments))
+        }
+        actionCreator应当接收参数并返回一个action
+     */
+    return bindActionCreator(actionCreators, dispatch) 
   }
 
   if (typeof actionCreators !== 'object' || actionCreators === null) {
@@ -41,8 +48,15 @@ export default function bindActionCreators(actionCreators, dispatch) {
 
   const boundActionCreators = {}
   for (const key in actionCreators) {
-    const actionCreator = actionCreators[key]
+    const actionCreator = actionCreators[key] //遍历拿到dispatch函数
     if (typeof actionCreator === 'function') {
+      /**
+       * boundActionCreators={
+       *  action1:function() {return dispatch(actionCreator.apply(this, arguments))}
+       *  action2:function() {return dispatch(actionCreator.apply(this, arguments))}
+       *  action3:function() {return dispatch(actionCreator.apply(this, arguments))}
+       * }
+       */
       boundActionCreators[key] = bindActionCreator(actionCreator, dispatch)
     }
   }
