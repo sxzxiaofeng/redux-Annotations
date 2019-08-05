@@ -20,7 +20,7 @@ function createListenerCollection() {
       current = CLEARED
     },
 
-    notify() {
+    notify() {//遍历listen中存放的notify函数,做出相应更改
       const listeners = (current = next)
       batch(() => {
         for (let i = 0; i < listeners.length; i++) {
@@ -79,8 +79,11 @@ export default class Subscription {
   }
 
   trySubscribe() {
-    if (!this.unsubscribe) {
-      this.unsubscribe = this.parentSub
+    if (!this.unsubscribe) { //如果没有取消订阅
+      this.unsubscribe = this.parentSub 
+      /**
+       * 是否有其他的订阅函数，没有则直接将handleChangeWrapper，放入订阅
+       */
         ? this.parentSub.addNestedSub(this.handleChangeWrapper)
         : this.store.subscribe(this.handleChangeWrapper)
 

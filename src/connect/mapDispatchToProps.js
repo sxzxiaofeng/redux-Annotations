@@ -3,7 +3,7 @@ import { wrapMapToPropsConstant, wrapMapToPropsFunc } from './wrapMapToProps'
 
 export function whenMapDispatchToPropsIsFunction(mapDispatchToProps) {
   return typeof mapDispatchToProps === 'function'
-    ? wrapMapToPropsFunc(mapDispatchToProps, 'mapDispatchToProps')
+    ? wrapMapToPropsFunc(mapDispatchToProps, 'mapDispatchToProps') //过程类似mapStateToProps
     : undefined
 }
 

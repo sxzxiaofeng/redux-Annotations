@@ -49,6 +49,8 @@ export default function connectAdvanced(
     selectorFactory is a func that is responsible for returning the selector function used to
     compute new props from state, props, and dispatch. For example:
 
+    selectorFactory是一个func，负责返回用于state、props和dispatch计算新props的选择器函数。例如：
+
       export default connectAdvanced((dispatch, options) => (state, props) => ({
         thing: state.things[props.thingId],
         saveThing: fields => dispatch(actionCreators.saveThing(props.thingId, fields)),
