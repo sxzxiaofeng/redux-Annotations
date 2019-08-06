@@ -75,12 +75,16 @@ export default function connectAdvanced(
   {
     // the func used to compute this HOC's displayName from the wrapped component's displayName.
     // probably overridden by wrapper functions such as connect()
+
     // 用于从包装组件的displayName计算此hoc的displayName的func。
     // 可能被connect()等包装器函数覆盖
+    // 这个的结果主要是在selectorFactory中验证抛出warning时使用
     getDisplayName = name => `ConnectAdvanced(${name})`,
 
     // shown in error messages
     // probably overridden by wrapper functions such as connect()
+
+    // 也是被用在抛出warning的时候使用
     // 显示在错误消息中，可能被connect()等包装器函数覆盖
 
     methodName = 'connectAdvanced',
@@ -170,14 +174,14 @@ export default function connectAdvanced(
 
     const selectorFactoryOptions = {
       ...connectOptions,
-      getDisplayName,
+      getDisplayName,//name => `ConnectAdvanced(${name})`
       methodName,//'connect'
       renderCountProp,//被移除
-      shouldHandleStateChanges,
-      storeKey,
+      shouldHandleStateChanges,//Boolean(mapStateToProps)
+      storeKey,//被移除
       displayName,
       wrappedComponentName,
-      WrappedComponent
+      WrappedComponent//被包装的组件
     }
 
     const { pure } = connectOptions
@@ -189,20 +193,27 @@ export default function connectAdvanced(
     // If we aren't running in "pure" mode, we don't want to memoize values.
     // To avoid conditionally calling hooks, we fall back to a tiny wrapper
     // that just executes the given callback immediately.
+    // 如果我们不是在“pure”模式下运行，我们就不想记住值。
+    // 为了避免有条件地调用hooks，我们退回到一个很小的包装器，它只会立即执行给定的回调。
     const usePureOnlyMemo = pure ? useMemo : callback => callback()
 
     function ConnectFunction(props) {
       const [propsContext, forwardedRef, wrapperProps] = useMemo(() => {
         // Distinguish between actual "data" props that were passed to the wrapper component,
+        // 区分传递给包装器组件的实际“data”props，
         // and values needed to control behavior (forwarded refs, alternate context instances).
+        // 以及控制行为所需的值(转发的引用、备用上下文实例)。
         // To maintain the wrapperProps object reference, memoize this destructuring.
+        // 要维护wrapperProps对象引用，请记住此析构。
         const { forwardedRef, ...wrapperProps } = props
         return [props.context, forwardedRef, wrapperProps]
       }, [props])
 
-      const ContextToUse = useMemo(() => {
+      const ContextToUse = useMemo(() => {//决定哪个context被使用。
         // Users may optionally pass in a custom context instance to use instead of our ReactReduxContext.
+        // 用户可以选择性地传递一个自定义context实例来代替我们的ReactReduxContext使用。
         // Memoize the check that determines which context instance we should use.
+        // Memoize确定我们应该使用哪个context实例的检查
         return propsContext &&
           propsContext.Consumer &&
           isContextConsumer(<propsContext.Consumer />)
@@ -211,26 +222,31 @@ export default function connectAdvanced(
       }, [propsContext, Context])
 
       // Retrieve the store and ancestor subscription via context, if available
-      const contextValue = useContext(ContextToUse)
+      const contextValue = useContext(ContextToUse)//拿到context
 
       // The store _must_ exist as either a prop or in context
+      // 存储必须作为state或在context中存在
+      // 判断store是否来自props
       const didStoreComeFromProps = Boolean(props.store)
+      // 判断store是否来自context
       const didStoreComeFromContext =
         Boolean(contextValue) && Boolean(contextValue.store)
 
-      invariant(
+      invariant(//如果store不存在context中或者props中则报错
         didStoreComeFromProps || didStoreComeFromContext,
         `Could not find "store" in the context of ` +
           `"${displayName}". Either wrap the root component in a <Provider>, ` +
           `or pass a custom React context provider to <Provider> and the corresponding ` +
           `React context consumer to ${displayName} in connect options.`
       )
-
+      // 拿到store
       const store = props.store || contextValue.store
 
       const childPropsSelector = useMemo(() => {
         // The child props selector needs the store reference as an input.
         // Re-create this selector whenever the store changes.
+        //子props选择器需要将store引用作为输入
+        //每当store更改时重新创建此选择器
         return createChildSelector(store)
       }, [store])
 
@@ -239,6 +255,7 @@ export default function connectAdvanced(
 
         // This Subscription's source should match where store came from: props vs. context. A component
         // connected to the store via props shouldn't use subscription from context, or vice versa.
+        // 他的订阅源应该与store源匹配：props和context。通过props连接到store的组件不应使用context订阅，反之亦然。
         const subscription = new Subscription(
           store,
           didStoreComeFromProps ? null : contextValue.subscription
