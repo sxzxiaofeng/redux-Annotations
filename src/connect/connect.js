@@ -106,7 +106,7 @@ export function createConnect({
       methodName: 'connect',
 
       // used to compute Connect's displayName from the wrapped component's displayName.
-      // 用于从包装组件的DisplayName计算Connect的DisplayName。
+      // 用于 从包装组件的DisplayName计算Connect的DisplayName。
       getDisplayName: name => `Connect(${name})`,
 
       // if mapStateToProps is falsy, the Connect component doesn't subscribe to store state changes

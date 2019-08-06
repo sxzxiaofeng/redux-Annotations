@@ -60,50 +60,66 @@ export default function connectAdvanced(
     outside of their selector as an optimization. Options passed to connectAdvanced are passed to
     the selectorFactory, along with displayName and WrappedComponent, as the second argument.
 
+    向工厂提供对dispatch的访问权限，以便selectorFacules可以将actionCreators绑定到其选择器之外作为优化。
+    传递给connectAdvanced的选项传递给selectorFactory以及DisplayName和WrappedComponent作为第二个参数。
+
     Note that selectorFactory is responsible for all caching/memoization of inbound and outbound
     props. Do not use connectAdvanced directly without memoizing results between calls to your
     selector, otherwise the Connect component will re-render on every state or props change.
+
+    请注意，selectorFactory负责入站和出站道具的所有缓存/记忆。
+    不要在对选择器的调用之间没有记忆结果的情况下直接使用connectAdvanced，否则Connect组件将在每次状态或道具更改时重新呈现。
   */
   selectorFactory,
   // options object:
   {
     // the func used to compute this HOC's displayName from the wrapped component's displayName.
     // probably overridden by wrapper functions such as connect()
+    // 用于从包装组件的displayName计算此hoc的displayName的func。
+    // 可能被connect()等包装器函数覆盖
     getDisplayName = name => `ConnectAdvanced(${name})`,
 
     // shown in error messages
     // probably overridden by wrapper functions such as connect()
+    // 显示在错误消息中，可能被connect()等包装器函数覆盖
+
     methodName = 'connectAdvanced',
 
     // REMOVED: if defined, the name of the property passed to the wrapped element indicating the number of
     // calls to render. useful for watching in react devtools for unnecessary re-renders.
+    // 如果定义了，则是传递给包装元素的属性名称，指示要呈现的调用的数量。用于在React DevTools中观看不必要的重新渲染。
     renderCountProp = undefined,
 
     // determines whether this HOC subscribes to store changes
+    // 确定此HOC是否订阅store更改
     shouldHandleStateChanges = true,
 
     // REMOVED: the key of props/context to get the store
+    // 获取store的props/context的key
     storeKey = 'store',
 
     // REMOVED: expose the wrapped component via refs
     withRef = false,
 
     // use React's forwardRef to expose a ref of the wrapped component
+    // 使用React's forwardRef暴露包装组件的ref
     forwardRef = false,
 
     // the context consumer to use
+    //context consumer 
     context = ReactReduxContext,
 
     // additional options are passed through to the selectorFactory
     ...connectOptions
   } = {}
 ) {
-  invariant(
+  invariant( //被移除的属性
     renderCountProp === undefined,
     `renderCountProp is removed. render counting is built into the latest React Dev Tools profiling extension`
+    //renderCountProp已删除。渲染计数内置于最新的React Dev Tools分析扩展中
   )
 
-  invariant(
+  invariant(//被移除的属性
     !withRef,
     'withRef is removed. To access the wrapped instance, use a ref on the connected component'
   )
@@ -113,16 +129,27 @@ export default function connectAdvanced(
     "React.createContext(), and pass the context object to React Redux's Provider and specific components" +
     ' like: <Provider context={MyContext}><ConnectedComponent context={MyContext} /></Provider>. ' +
     'You may also pass a {context : MyContext} option to connect'
-
-  invariant(
+    /**
+     * 要对特定组件使用自定义Redux store，请使用React.createContext()创建自定义React context，
+     * 并将Context对象传递给Reaction Redux的提供者和特定组件，
+     * 如：
+     * <provider context={MyContext}>
+     *  <ConnectedComponent context={MyContext}/>
+     * </provider>
+     * 你也可以传递一个{context：myContext}给connect‘
+     */
+  invariant(//被移除的属性
     storeKey === 'store',
     'storeKey has been removed and does not do anything. ' +
       customStoreWarningMessage
   )
 
   const Context = context
-
+    /**
+     * WrappedComponent 传入的组件
+     */
   return function wrapWithConnect(WrappedComponent) {
+     // 参数检测
     if (process.env.NODE_ENV !== 'production') {
       invariant(
         isValidElementType(WrappedComponent),
@@ -130,19 +157,22 @@ export default function connectAdvanced(
           `${methodName}. Instead received ${stringifyComponent(
             WrappedComponent
           )}`
+          //必须将组件传递给connect返回的函数
       )
     }
 
     const wrappedComponentName =
+    // 组件的displayName，默认Component
       WrappedComponent.displayName || WrappedComponent.name || 'Component'
 
+    // 拼接生成新的displayName
     const displayName = getDisplayName(wrappedComponentName)
 
     const selectorFactoryOptions = {
       ...connectOptions,
       getDisplayName,
-      methodName,
-      renderCountProp,
+      methodName,//'connect'
+      renderCountProp,//被移除
       shouldHandleStateChanges,
       storeKey,
       displayName,
