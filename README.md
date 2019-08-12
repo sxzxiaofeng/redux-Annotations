@@ -1,5 +1,5 @@
-#react-redux 的源码理解
-##主流程
+# react-redux 
+## Main flow
 provide.js(创建context，将createStore创建的store对象作为context值，并且订阅state)
 =>connect.js(传入mapStateToProps,mapDisPatchToProps等参数)
 =>mapDispatchToProps.js & mapStateToProps.js & mergeProps.js (类型检测以及将props和state，dispatch merge成为一个对象)
