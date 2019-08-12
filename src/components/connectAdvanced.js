@@ -26,6 +26,7 @@ const stringifyComponent = Comp => {
 }
 
 function storeStateUpdatesReducer(state, action) {
+  // state初始值为[null, 0]
   const [, updateCount] = state
   return [action.payload, updateCount + 1]
 }
@@ -179,21 +180,21 @@ export default function connectAdvanced(
       renderCountProp,//被移除
       shouldHandleStateChanges,//Boolean(mapStateToProps)
       storeKey,//被移除
-      displayName,
+      displayName,//用于抛出异常使用
       wrappedComponentName,
       WrappedComponent//被包装的组件
     }
 
     const { pure } = connectOptions
 
-    function createChildSelector(store) {
+    function createChildSelector(store) { //返回pureFinalPropsSelector函数
       return selectorFactory(store.dispatch, selectorFactoryOptions)
     }
 
     // If we aren't running in "pure" mode, we don't want to memoize values.
     // To avoid conditionally calling hooks, we fall back to a tiny wrapper
     // that just executes the given callback immediately.
-    // 如果我们不是在“pure”模式下运行，我们就不想记住值。
+    // 如果我们不是在“pure”模式下运行，我们就不想记住值。(useMemo)
     // 为了避免有条件地调用hooks，我们退回到一个很小的包装器，它只会立即执行给定的回调。
     const usePureOnlyMemo = pure ? useMemo : callback => callback()
 
@@ -206,6 +207,7 @@ export default function connectAdvanced(
         // To maintain the wrapperProps object reference, memoize this destructuring.
         // 要维护wrapperProps对象引用，请记住此析构。
         const { forwardedRef, ...wrapperProps } = props
+        //除了props中的context，其他的属性都是组件的props
         return [props.context, forwardedRef, wrapperProps]
       }, [props])
 
@@ -242,7 +244,7 @@ export default function connectAdvanced(
       // 拿到store
       const store = props.store || contextValue.store
 
-      const childPropsSelector = useMemo(() => {
+      const childPropsSelector = useMemo(() => { //childPropsSelector===pureFinalPropsSelector函数
         // The child props selector needs the store reference as an input.
         // Re-create this selector whenever the store changes.
         //子props选择器需要将store引用作为输入
@@ -250,7 +252,7 @@ export default function connectAdvanced(
         return createChildSelector(store)
       }, [store])
 
-      const [subscription, notifyNestedSubs] = useMemo(() => {
+      const [subscription, notifyNestedSubs] = useMemo(() => {//拿到subscription实例和notifyNestedSubs
         if (!shouldHandleStateChanges) return NO_SUBSCRIPTION_ARRAY
 
         // This Subscription's source should match where store came from: props vs. context. A component
@@ -258,6 +260,8 @@ export default function connectAdvanced(
         // 他的订阅源应该与store源匹配：props和context。通过props连接到store的组件不应使用context订阅，反之亦然。
         const subscription = new Subscription(
           store,
+          //如果是从props中拿到的store的话，则使用store中的订阅，
+          //如果是从context中拿到的store则使用context中的subscription
           didStoreComeFromProps ? null : contextValue.subscription
         )
 
@@ -265,6 +269,10 @@ export default function connectAdvanced(
         // the middle of the notification loop, where `subscription` will then be null. This can
         // probably be avoided if Subscription's listeners logic is changed to not call listeners
         // that have been unsubscribed in the  middle of the notification loop.
+        /**
+         * ` notifynestedsubs`是重复的，用于处理在通知循环中间卸载组件的情况，其中'subscription'将为空。
+         * 如果listeners逻辑更改为不调用在通知循环中间已取消订阅的侦听器，则可能会避免这种情况。
+         */
         const notifyNestedSubs = subscription.notifyNestedSubs.bind(
           subscription
         )
@@ -274,16 +282,24 @@ export default function connectAdvanced(
 
       // Determine what {store, subscription} value should be put into nested context, if necessary,
       // and memoize that value to avoid unnecessary context updates.
-      const overriddenContextValue = useMemo(() => {
+      // 确定应将哪个{store, subscription}放入嵌套上下文中（如有必要），并记住该值以避免不必要的上下文更新。
+      const overriddenContextValue = useMemo(() => {//获取新的store和此组件的subscription
         if (didStoreComeFromProps) {
           // This component is directly subscribed to a store from props.
           // We don't want descendants reading from this store - pass down whatever
           // the existing context value is from the nearest connected ancestor.
+          /**
+           * 此组件直接从props订阅store。
+           * 我们不希望后代从此store中读取内容-传递现有context值来自最近连接的祖先的内容。
+           */
           return contextValue
         }
 
         // Otherwise, put this component's subscription instance into context, so that
         // connected descendants won't update until after this component is done
+        /**
+         * 否则，将此组件的订阅实例放到context中，这样，在完成此组件之后，连接的后代才会更新
+         */
         return {
           ...contextValue,
           subscription
@@ -292,9 +308,14 @@ export default function connectAdvanced(
 
       // We need to force this wrapper component to re-render whenever a Redux store update
       // causes a change to the calculated child component props (or we caught an error in mapState)
+      /**
+       * 每当redux store更新导致计算的子组件props发生更改时（或者我们在mapstate中捕获到错误），
+       * 我们需要强制重新呈现这个包装组件。
+       */
       const [
         [previousStateUpdateResult],
         forceComponentUpdateDispatch
+        //第三个参数返回的值就是state的初始值
       ] = useReducer(storeStateUpdatesReducer, EMPTY_ARRAY, initStateUpdates)
 
       // Propagate any mapState/mapDispatch errors upwards
@@ -303,6 +324,7 @@ export default function connectAdvanced(
       }
 
       // Set up refs to coordinate values between the subscription effect and the render logic
+      // 设置refs以协调订阅效果和render逻辑之间的值
       const lastChildProps = useRef()
       const lastWrapperProps = useRef(wrapperProps)
       const childPropsFromStoreUpdate = useRef()
@@ -315,9 +337,17 @@ export default function connectAdvanced(
         // If we have new child props, and the same wrapper props, we know we should use the new child props as-is.
         // But, if we have new wrapper props, those might change the child props, so we have to recalculate things.
         // So, we'll use the child props from store update only if the wrapper props are the same as last time.
+        /**
+         * 这里的逻辑很复杂：
+            //-此呈现可能是由生成新子props的Redux store更新触发的。
+            //-但是，之后我们可能会得到新的wrapper props。
+            //如果我们有新的child props和相同的wrapper props，我们知道应该按原样使用新的子属性。
+            //但是，如果我们有新的包装器属性，这些属性可能会更改子属性，因此我们必须重新计算这些属性。
+            //因此，只有当包装器属性与上次相同时，我们才会使用store更新中的子属性
+         */
         if (
           childPropsFromStoreUpdate.current &&
-          wrapperProps === lastWrapperProps.current
+          wrapperProps === lastWrapperProps.current //判断props是否还是之前的props
         ) {
           return childPropsFromStoreUpdate.current
         }
@@ -326,19 +356,31 @@ export default function connectAdvanced(
         // This will likely cause Bad Things (TM) to happen in Concurrent Mode.
         // Note that we do this because on renders _not_ caused by store updates, we need the latest store state
         // to determine what the child props should be.
-        return childPropsSelector(store.getState(), wrapperProps)
+        /**
+         * Todo我们直接在render（）中读取存储。坏主意？
+            //这可能会导致在并发模式下发生错误（tm）。
+            //请注意，我们这样做是因为，在呈现时（不是由store更新引起的），
+            //我们需要最新的存储状态来确定子属性应该是什么。
+         */
+        return childPropsSelector(store.getState(), wrapperProps) //获取最新的props
       }, [store, previousStateUpdateResult, wrapperProps])
 
       // We need this to execute synchronously every time we re-render. However, React warns
       // about useLayoutEffect in SSR, so we try to detect environment and fall back to
       // just useEffect instead to avoid the warning, since neither will run anyway.
-      useIsomorphicLayoutEffect(() => {
+      /**
+       * 每次重新渲染时都需要同步执行。然而，react警告SSR中的useLayoutEffect
+       * 因此我们尝试检测环境并返回到just useeffect，而不是避免警告，因为两者都不会运行。
+       */
+      useIsomorphicLayoutEffect(() => {// 在dom更新完成之后执行 为下列属性赋值
         // We want to capture the wrapper props and child props we used for later comparisons
+        // 我们要捕获包装器和子属性，以便以后进行比较
         lastWrapperProps.current = wrapperProps
         lastChildProps.current = actualChildProps
         renderIsScheduled.current = false
 
         // If the render was from a store update, clear out that reference and cascade the subscriber update
+        //如果render来自store更新，请清除该引用并级联订阅者更新
         if (childPropsFromStoreUpdate.current) {
           childPropsFromStoreUpdate.current = null
           notifyNestedSubs()
@@ -351,14 +393,19 @@ export default function connectAdvanced(
         if (!shouldHandleStateChanges) return
 
         // Capture values for checking if and when this component unmounts
+        // 捕获值以检查此组件是否卸载以及何时卸载
         let didUnsubscribe = false
         let lastThrownError = null
 
         // We'll run this callback every time a store subscription update propagates to this component
-        const checkForUpdates = () => {
+        // 每次store 订阅更新传播到此组件时，我们都将运行此回调
+        const checkForUpdates = () => {//实际listeners中添加的函数
           if (didUnsubscribe) {
             // Don't run stale listeners.
             // Redux doesn't guarantee unsubscriptions happen until next dispatch.
+            /**
+             * 不要运行过时的侦听器。Redux不保证在下一次dispatch之前发生取消订阅。
+             */
             return
           }
 
@@ -368,7 +415,9 @@ export default function connectAdvanced(
           try {
             // Actually run the selector with the most recent store state and wrapper props
             // to determine what the child props should be
-            newChildProps = childPropsSelector(
+            // 实际上，使用最新的store state和包装属性运行选择器，
+            // 以确定child props应该是什么。
+            newChildProps = childPropsSelector( //当store更新之后计算新的props
               latestStoreState,
               lastWrapperProps.current
             )
@@ -382,7 +431,9 @@ export default function connectAdvanced(
           }
 
           // If the child props haven't changed, nothing to do here - cascade the subscription update
+          //如果子属性未更改，则此处不做任何操作-层叠订阅更新
           if (newChildProps === lastChildProps.current) {
+            // 表示不需要当前组件更新，但是需要通知子组件更新
             if (!renderIsScheduled.current) {
               notifyNestedSubs()
             }
@@ -391,11 +442,19 @@ export default function connectAdvanced(
             // as a ref instead of a useState/useReducer because we need a way to determine if that value has
             // been processed.  If this went into useState/useReducer, we couldn't clear out the value without
             // forcing another re-render, which we don't want.
+            /**
+             * 保存对新子属性的引用。请注意，
+             * 我们将“store更新中的子属性”作为引用而不是useState/useReducer进行跟踪，
+             * 因为我们需要一种方法来确定该值是否已被处理。
+             * 如果它进入useState/useReducer，我们就无法在不强制另一个重新render的情况下清除该值，
+             * 这是我们不想要的。
+             */
             lastChildProps.current = newChildProps
             childPropsFromStoreUpdate.current = newChildProps
             renderIsScheduled.current = true
 
             // If the child props _did_ change (or we caught an error), this wrapper component needs to re-render
+            // 如果子属性发生了变化（或者我们发现了一个错误），这个包装组件需要重新render
             forceComponentUpdateDispatch({
               type: 'STORE_UPDATED',
               payload: {
@@ -407,11 +466,13 @@ export default function connectAdvanced(
         }
 
         // Actually subscribe to the nearest connected ancestor (or store)
+        // 实际订阅最近连接的祖先（或store）
         subscription.onStateChange = checkForUpdates
-        subscription.trySubscribe()
+        subscription.trySubscribe()//改变renderIsScheduled.current值
 
         // Pull data from the store after first render in case the store has
         // changed since we began.
+        // 在第一次render后从store中提取数据，以防store自我们开始后发生更改。
         checkForUpdates()
 
         const unsubscribeWrapper = () => {
@@ -433,6 +494,8 @@ export default function connectAdvanced(
 
       // Now that all that's done, we can finally try to actually render the child component.
       // We memoize the elements for the rendered child component as an optimization.
+      // 现在所有这些都完成了，我们终于可以尝试实际呈现子组件了。
+      // 我们将呈现的子组件的元素记忆为优化。
       const renderedWrappedComponent = useMemo(
         () => <WrappedComponent {...actualChildProps} ref={forwardedRef} />,
         [forwardedRef, WrappedComponent, actualChildProps]
@@ -445,6 +508,10 @@ export default function connectAdvanced(
           // If this component is subscribed to store updates, we need to pass its own
           // subscription instance down to our descendants. That means rendering the same
           // Context instance, and putting a different value into the context.
+          /**
+           * 如果这个组件订阅了store更新，我们需要将它自己的订阅实例传递给我们的后代。
+           * 这意味着呈现相同的上下文实例，并将不同的值放入上下文中。
+           */
           return (
             <ContextToUse.Provider value={overriddenContextValue}>
               {renderedWrappedComponent}
@@ -459,12 +526,13 @@ export default function connectAdvanced(
     }
 
     // If we're in "pure" mode, ensure our wrapper component only re-renders when incoming props have changed.
+    // 如果我们处于“纯”模式，请确保只有在传入的props发生更改时，包装器组件才会重新呈现。
     const Connect = pure ? React.memo(ConnectFunction) : ConnectFunction
 
     Connect.WrappedComponent = WrappedComponent
     Connect.displayName = displayName
 
-    if (forwardRef) {
+    if (forwardRef) {//始终为false
       const forwarded = React.forwardRef(function forwardConnectRef(
         props,
         ref

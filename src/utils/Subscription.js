@@ -7,7 +7,7 @@ import { getBatch } from './batch'
 const CLEARED = null
 const nullListeners = { notify() {} }
 
-function createListenerCollection() {
+function createListenerCollection() { //类似createStore中的设计
   const batch = getBatch()
   // the current/next pattern is copied from redux's createStore code.
   // TODO: refactor+expose that code to be reusable here?
@@ -20,7 +20,7 @@ function createListenerCollection() {
       current = CLEARED
     },
 
-    notify() {//遍历listen中存放的notify函数,做出相应更改
+    notify() {//遍历listen中存放的notify函数,做出相应更改，触发监听的函数
       const listeners = (current = next)
       batch(() => {
         for (let i = 0; i < listeners.length; i++) {
@@ -83,8 +83,11 @@ export default class Subscription {
       this.unsubscribe = this.parentSub 
       /**
        * 是否有其他的订阅函数，没有则直接将handleChangeWrapper，放入订阅
+       * 
+       * 若传递了发布订阅器则使用该订阅器订阅方法进行订阅
+       * 否则使用store的订阅方法
        */
-        ? this.parentSub.addNestedSub(this.handleChangeWrapper)
+        ? this.parentSub.addNestedSub(this.handleChangeWrapper)//使用context中的addNestedSub
         : this.store.subscribe(this.handleChangeWrapper)
 
       this.listeners = createListenerCollection()

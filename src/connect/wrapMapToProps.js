@@ -28,6 +28,12 @@ export function wrapMapToPropsConstant(getConstant) {
 // A length of one signals that mapToProps does not depend on props from the parent component.
 // A length of zero is assumed to mean mapToProps is getting args via arguments or ...args and
 // therefore not reporting its length accurately..
+/**
+ * CreateMapTopropsProxy使用DependsOnWnProps来确定是否将Props作为参数传递给要包装的MapToprops函数。
+ * makepurePropsSelector还使用它来确定当props发生更改时是否需要调用mapToProps。
+ * 一个长度的信号表示maptoprops不依赖于父组件中的props。
+ * 假设长度为零表示maptoprops通过参数或…参数获取参数，因此无法准确报告其长度。
+ */
 export function getDependsOnOwnProps(mapToProps) {
   return mapToProps.dependsOnOwnProps !== null &&
     mapToProps.dependsOnOwnProps !== undefined
@@ -44,10 +50,10 @@ export function getDependsOnOwnProps(mapToProps) {
 //
 //  * Detects whether the mapToProps function being called depends on props, which
 //    is used by selectorFactory to decide if it should reinvoke on props changes.
-//检测正在调用的mapToProps函数是否依赖于props，selectorFactory使用props来决定是否应在props更改时重新调用
+// 检测正在调用的mapToProps函数是否依赖于props，selectorFactory使用props来决定是否应在props更改时重新调用
 //  * On first call, handles mapToProps if returns another function, and treats that
 //    new function as the true mapToProps for subsequent calls.
-//第一次调用时，如果返回另一个函数，则处理mapToProps，并将该新函数视为后续调用的真正mapToProps。
+// 第一次调用时，如果返回另一个函数，则处理mapToProps，并将该新函数视为后续调用的真正mapToProps。
 //  * On first call, verifies the first result is a plain object, in order to warn
 //    the developer that their mapToProps function is not returning a valid result.
 //在第一次调用时，验证第一个结果是普通对象，以警告开发人员他们的mapToProps函数没有返回有效的结果。
