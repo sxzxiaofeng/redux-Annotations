@@ -25,6 +25,16 @@ function bindActionCreator(actionCreator, dispatch) {
  * function as `actionCreators`, the return value will also be a single
  * function.
  */
+/**
+ * 例子：
+ *import * as TodoActionCreators from './TodoActionCreators'
+  const mapDispatchToProps = (dispatch) => {
+    return {
+      handleLoginSuccess: bindActionCreators(TodoActionCreators, dispatch),
+    };
+  };
+  this.props.handleLoginSuccess.TodoActionCreator1(); 
+ */
 export default function bindActionCreators(actionCreators, dispatch) {
   if (typeof actionCreators === 'function') {
     /**
@@ -62,3 +72,16 @@ export default function bindActionCreators(actionCreators, dispatch) {
   }
   return boundActionCreators
 }
+/**
+ * 不使用bindActionCreators时候:
+ * function actions(dispatch) {
+    return {
+      onIncrement: () => dispatch(increment())
+    };
+  }
+  使用时：
+  let actions = {
+    addItem: ()=>({type: types.ADD_ITEM,paload}) 
+  }
+  bindActionCreators(actions, dispatch); 
+ */
